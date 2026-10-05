@@ -1,0 +1,219 @@
+; The unit of the devices are 100nm 
+
+(define Lsub 0.75)         ; length of the Substrate 75 nm 
+
+(define Wsub 0.25)         ; Width of the Substrate  25 nm 
+
+(define Hsub  0.25)       ; Substrate height        25 nm 
+
+(define T_SiO2 0.02)     ; thickness of the SiO2 layer 0.5 nm 
+
+(define W_source 0.3)    ; Width of source  30 nm 
+
+(define W_drain  0.3)    ; Width of drain   30 nm 
+
+(define depth 0.05)    ; depth of source/drain  5 nm 
+
+ 
+
+; DERIVED DIMENSIONS 
+
+  
+
+; Substrate derived dimensions 
+
+(define yleft  (* Lsub -0.5)) 
+
+(define yright  (* Lsub 0.5)) 
+
+(define xfront  (* Wsub 0.5)) 
+
+(define xback  (* Wsub -0.5)) 
+
+(define zbot  (* -1.0 Hsub)) ; bottom of substate 
+
+  
+
+; SiO2 derived dimensions 
+
+(define zbot_SiO2  0) 
+
+(define ztop_SiO2 T_SiO2) 
+
+  
+
+  
+
+; ----------------------Structure---------------------- 
+
+  
+
+; set a different material for different dielectric constant 
+
+(sdegeo:set-default-boolean "ABA") 
+
+  
+
+(sdegeo:create-cuboid (position  xfront yleft zbot) (position  xback yright 0)    "Silicon" "R.Substrate" ) 
+
+  
+
+; SiO2 (Gate oxide) 
+
+(sdegeo:create-cuboid (position  xfront -0.075 zbot_SiO2) (position  xback 0.075 ztop_SiO2)     "Oxide" "R.SiO2" ) 
+
+  
+
+  
+
+(define yleft_temp (+ yleft 0.15)) 
+
+(define yright_temp (- yright 0.15)) 
+
+  
+
+(sdegeo:create-cuboid (position  xfront yleft  0) (position  xback yleft_temp (* -1 depth))  "Silicon" "R.source" ) 
+
+(sdegeo:create-cuboid (position  xfront yright  0) (position  xback yright_temp (* -1 depth))  "Silicon" "R.drain" ) 
+
+  
+
+(sdegeo:create-cuboid (position  xfront yleft_temp  0) (position  xback -0.075 (* -1 depth))  "Silicon" "R.source.C" ) 
+
+(sdegeo:create-cuboid (position  xfront yright_temp  0) (position  xback 0.075 (* -1 depth))  "Silicon" "R.drain.C" ) 
+
+  
+
+; ----------------------Doping---------------------- 
+
+  
+
+; add wafer doping 
+
+(sdedr:define-constant-profile "Const.Silicon" "BoronActiveConcentration" 1e17) 
+
+(sdedr:define-constant-profile-material "PlaceRF.Silicon" "Const.Silicon" "Silicon") 
+
+  
+
+; add n-well 
+
+(sdedr:define-refinement-window "left.nwell" "Rectangle" (position -0.125 -0.075 0.0) (position 0.125 -0.375 0.0))  
+
+(sdedr:define-gaussian-profile "Gauss.left.nwell" "ArsenicActiveConcentration" "PeakPos" 0.0 "PeakVal" 5e19 "ValueAtDepth" 1e14 "Depth" 0.07 "Gauss" "Factor" 0.5)  
+
+(sdedr:define-analytical-profile-placement "PlaceAP.left.nwell" "Gauss.left.nwell" "left.nwell" "Negative" "NoReplace" "Eval")  
+
+  
+
+(sdedr:define-refinement-window "right.nwell" "Rectangle" (position -0.125 0.375 0.0) (position 0.125 0.075 0.0))  
+
+(sdedr:define-gaussian-profile "Gauss.right.nwell" "ArsenicActiveConcentration" "PeakPos" 0.0 "PeakVal" 5e19 "ValueAtDepth" 1e14 "Depth" 0.07 "Gauss" "Factor" 0.5)  
+
+(sdedr:define-analytical-profile-placement "PlaceAP.right.nwell" "Gauss.right.nwell" "right.nwell" "Negative" "NoReplace" "Eval")  
+
+  
+
+  
+
+; ----------------------Contacts---------------------- 
+
+  
+
+;--- define contact 
+
+(sdegeo:define-contact-set "source" 6.0 
+
+(color:rgb 0.5 0.5 0.5) "##") ; color is grey 
+
+  
+
+(sdegeo:define-contact-set "drain" 6.0 
+
+(color:rgb 0.5 0.5 0.5) "##") ; color is grey 
+
+  
+
+(sdegeo:define-contact-set "substrate" 6.0 
+
+(color:rgb 0.5 0.5 0.5) "##") ; color is grey 
+
+  
+
+;-- assign contact 
+
+(sdegeo:set-current-contact-set "source") 
+
+(sdegeo:define-3d-contact (find-face-id (position 0  -0.374 0)) (sdegeo:get-current-contact-set)) 
+
+  
+
+(sdegeo:set-current-contact-set "drain") 
+
+(sdegeo:define-3d-contact (find-face-id (position 0  0.374 0)) (sdegeo:get-current-contact-set)) 
+
+  
+
+(sdegeo:set-current-contact-set "substrate") 
+
+(sdegeo:define-3d-contact (find-face-id (position 0  0 zbot)) (sdegeo:get-current-contact-set)) 
+
+  
+
+(sdegeo:set-current-contact-set "gate") 
+
+(sdegeo:define-3d-contact (find-face-id (position 0  0 ztop_SiO2)) (sdegeo:get-current-contact-set)) 
+
+  
+
+; ----------------------Meshing---------------------- 
+
+  
+
+(sdedr:define-refinement-size "Si_Mesh" 0.02 0.02 0.01 0.01 0.01 0.005) 
+
+(sdedr:define-refinement-function "Si_Mesh" "MaxLenInt" "Silicon" "Oxide" 0.001 1.2 "DoubleSide") 
+
+(sdedr:define-refinement-function "Si_Mesh" "DopingConcentration" "MaxTransDiff" 1)  
+
+(sdedr:define-refinement-material "Si_RF" "Si_Mesh" "Silicon" ) 
+
+  
+
+(sdedr:define-refinement-size "Ox_Mesh" 0.01 0.01 0.01 0.005 0.005 0.005) 
+
+(sdedr:define-refinement-material "Ox_RF" "Ox_Mesh" "Oxide" )
+
+  
+
+;--- ChannelMesh ---; super refined dx, alone channel 
+
+(sdedr:define-refinement-window "win.channel.Refinement" "Cuboid" (position xfront -0.075 (* -1 depth)) (position xback 0.075 0)) 
+
+  
+
+(sdedr:define-refinement-size "channel.Refinement" 0.005 0.001 0.005 0.001 0.0005 0.001) 
+
+(sdedr:define-refinement-function "dxRefinePlacement" "DopingConcentration" "MaxTransDiff" 1) 
+
+(sdedr:define-refinement-placement "dxRefinePlacement" "channel.Refinement" "win.channel.Refinement") 
+
+  
+
+  
+
+; change to nanometer  
+
+(set! global-scaling 0.1) 
+
+  
+
+  
+
+  
+
+; Meshing the device structure 
+
+(sde:build-mesh "n@node@") 
+
+(sde:save-model "n@node@_geo") 
