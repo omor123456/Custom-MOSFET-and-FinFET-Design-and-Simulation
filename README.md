@@ -102,22 +102,6 @@ The resulting Id–Vg comparison demonstrated:
 
 These characteristics are important for scaling transistor dimensions while maintaining effective control of the conducting channel.
 
----
-
-### Device Simulation Files
-
-    Custom-MOSFET-FinFET/
-    │
-    ├── README.md
-    │
-    ├── MOS_SDE_example.txt
-    ├── MOS_SDevice_example.txt
-    │
-    ├── Fin_SDE_example.txt
-    ├── Fin_SDevice_example.txt
-    │
-    └── mosfet-vs-finfet-id-vg.png
-
 The SDE files contain the device structure and doping setup, while the SDevice files contain the electrical device simulation configuration.
 
 ---
