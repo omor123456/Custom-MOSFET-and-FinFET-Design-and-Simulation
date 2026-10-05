@@ -1,0 +1,255 @@
+; Reinitializing SDE  
+
+(sde:clear) 
+
+  
+
+;------------------ (1) parameter -----------------------; 
+
+(define nm 1e-3) 
+
+  
+
+(define Fw 5) 
+
+(define Fh 12.5) 
+
+(define Lg 15) 
+
+(define LSDC 15) ; length of source drain contact 
+
+(define LSD 15) 
+
+(define Tox 2) 
+
+(define x1 LSDC) 
+
+(define x2 (+ x1 LSD)) 
+
+(define x3 (+ x2 Lg)) 
+
+(define x4 (+ x3 LSD)) 
+
+(define x5 (+ x4 LSDC)) 
+
+(define y1 Fw) 
+
+(define y2 (+ y1 Tox)) 
+
+(define y3 (+ y1 10)) 
+
+(define z1 Fh) 
+
+(define z2 (+ z1 Tox)) 
+
+(define C_Doping 1e17) ; channel doping 
+
+(define SD_Doping 5e19) 
+
+(define SDC_Doping 5e19) 
+
+(define B_Doping 1e17) 
+
+  
+
+; ----------------------- (2) Structure ----------------------; 
+
+(sdegeo:set-default-boolean "ABA") ; have the boolean to be ABA, replace previous things here 
+
+  
+
+;--- Source contact and Source ---; 
+
+(sdegeo:create-cuboid (position 0 0 0 ) (position x1 y1 z1 ) "Silicon" "SourceC") 
+
+(sdegeo:create-cuboid (position x1 0 0 ) (position x2 y1 z1) "Silicon" "Source") 
+
+  
+
+;--- Gate oxide ---; 
+
+(sdegeo:create-cuboid (position x2 (- Tox) 0 ) (position x3 y2 z2 ) "Oxide" "Gateoxide") 
+
+;--- Channel ---; 
+
+(sdegeo:create-cuboid (position x2 0 0 ) (position x3 y1 z1 ) "Silicon" "Channel") 
+
+;--- Drain contact and Drain---; 
+
+(sdegeo:create-cuboid (position x3 0 0 ) (position x4 y1 z1 ) "Silicon" "Drain") 
+
+(sdegeo:create-cuboid (position x4 0 0 ) (position x5 y1 z1 ) "Silicon" "DrainC") 
+
+;--- Buried oxide ---; 
+
+(sdegeo:create-cuboid (position 0 (- 10) (- 20) ) (position x5 y3 0 ) "Oxide" "Box") 
+
+"ABA" 
+
+;--- Si Body ---; 
+
+(sdegeo:create-cuboid (position 0 0 (- 20) ) (position x5 y1 0 ) "Silicon" "Body") 
+
+  
+
+  
+
+  
+
+; --------------------- (3) Contact ------------------; 
+
+;----- Source -----; 
+
+(sdegeo:define-contact-set "S" 4.0 (color:rgb 1.0 0.0 0.0 ) "##" ) 
+
+(sdegeo:set-current-contact-set "S") 
+
+(sdegeo:set-contact-faces (find-face-id (position 1 1 z1))) 
+;(sdegeo:set-contact-faces (find-face-id (position 1 0 2))) 
+;(sdegeo:set-contact-faces (find-face-id (position 1 5 2))) 
+
+;----- Drain -----; 
+
+(sdegeo:define-contact-set "D" 4.0 (color:rgb 1.0 0.0 0.0 ) "##" ) 
+
+(sdegeo:set-current-contact-set "D") 
+
+(sdegeo:set-contact-faces (find-face-id (position (+ x4 1) 1 z1 ))) 
+;(sdegeo:set-contact-faces (find-face-id (position (+ x4 1) 0 2))) 
+;(sdegeo:set-contact-faces (find-face-id (position (+ x4 1) 5 2))) 
+
+;----- Front Gate -----; 
+
+(sdegeo:define-contact-set "G" 4.0 (color:rgb 1.0 0.0 0.0 ) "||" ) 
+
+(sdegeo:set-current-contact-set "G") 
+
+(sdegeo:set-contact-faces (find-face-id (position (+ x2 1) (- Tox) 1 ))) 
+
+;----- Top Gate -----; 
+
+(sdegeo:define-contact-set "G" 4.0 (color:rgb 1.0 0.0 0.0 ) "||" ) 
+
+(sdegeo:set-current-contact-set "G") 
+
+(sdegeo:set-contact-faces (find-face-id (position (+ x2 1) 1 z2 ))) 
+
+;----- Back Gate -----; 
+
+(sdegeo:define-contact-set "G" 4.0 (color:rgb 1.0 0.0 0.0 ) "||" ) 
+
+(sdegeo:set-current-contact-set "G") 
+
+(sdegeo:set-contact-faces (find-face-id (position (+ x2 1) y2 1 ))) 
+
+;----- Body -----; 
+
+(sdegeo:define-contact-set "B" 4.0 (color:rgb 1.0 0.0 0.0 ) "##" ) 
+
+(sdegeo:set-current-contact-set "B") 
+
+(sdegeo:set-contact-faces (find-face-id (position (* 0.5 x5) (* 0.5 y1) (- 20) ))) 
+
+  
+
+; ------------------------ (4) Doping -------------------------; 
+
+(sdedr:define-constant-profile "Const.Silicon" "BoronActiveConcentration" 1e17) 
+
+(sdedr:define-constant-profile-material "PlaceRF.Silicon" "Const.Silicon" "Silicon") 
+
+  
+
+; add n-well 
+
+(sdedr:define-refinement-window "left.nwell" "Rectangle" (position 30 5 12.5) (position 0 0 12.5))  
+
+(sdedr:define-gaussian-profile "Gauss.left.nwell" "ArsenicActiveConcentration" "PeakPos" 0.0 "PeakVal" 5e19 "ValueAtDepth" 1e14 "Depth" 25 "Gauss" "Factor" 0.14)  
+
+(sdedr:define-analytical-profile-placement "PlaceAP.left.nwell" "Gauss.left.nwell" "left.nwell" "Negative" "NoReplace" "Eval")  
+
+  
+
+(sdedr:define-refinement-window "right.nwell" "Rectangle" (position 75 5 12.5) (position 45 0 12.5))  
+
+(sdedr:define-gaussian-profile "Gauss.right.nwell" "ArsenicActiveConcentration" "PeakPos" 0.0 "PeakVal" 5e19 "ValueAtDepth" 1e14 "Depth" 25 "Gauss" "Factor" 0.14)
+
+(sdedr:define-analytical-profile-placement "PlaceAP.right.nwell" "Gauss.right.nwell" "right.nwell" "Negative" "NoReplace" "Eval")  
+
+ 
+
+; --------------------- (5) Customized Mesh -----------------------; 
+
+;--- Material-Wise-Mesh ---; 
+
+  
+
+(sdedr:define-refinement-size "Si_Mesh" 2 2 1 1 1 0.5) 
+
+(sdedr:define-refinement-function "Si_Mesh" "DopingConcentration" "MaxTransDiff" 1) 
+
+(sdedr:define-refinement-material "Si_RF" "Si_Mesh" "Silicon" ) 
+
+  
+
+(sdedr:define-refinement-size "Ox_Mesh" 1 1 1 0.5 0.5 0.5) 
+
+(sdedr:define-refinement-material "Ox_RF" "Ox_Mesh" "Oxide" ) 
+
+  
+
+  
+
+;--- ChannelMesh ---; super refined dx alone channel 
+
+(sdedr:define-refinement-window "win.channel.Refinement" "Cuboid" 
+
+(position x2 0 0) (position x3 y1 z1)) 
+
+  
+
+(sdedr:define-refinement-size "channel.Refinement" 0.1 0.5 0.5 0.05 0.1 0.1) 
+
+(sdedr:define-refinement-function "channel.Refinement" "MaxLenInt" "Silicon" "Oxide" 0.1 1.2 "DoubleSide") 
+
+(sdedr:define-refinement-placement "dxRefinePlacement" "channel.Refinement" "win.channel.Refinement") 
+
+  
+
+;--- FinMesh ---; 
+
+  
+
+(sdedr:define-refinement-window "multiboxChannel" "Cuboid" 
+
+(position 0 0 0) (position x5 y1 z1)) 
+
+  
+
+(sdedr:define-refinement-size "multiboxSizeChannel" 1 1 0.5 0.5 0.5 0.1) 
+
+(sdedr:define-refinement-placement "multiboxPlacementChannel" "multiboxSizeChannel" "multiboxChannel") 
+
+  
+
+  
+
+; ----------- (6) Save (BND and CMD and rescale to nm) -----------; 
+
+  
+
+  
+
+  
+
+; Meshing the device structure 
+
+(set! global-scaling nm) 
+
+(sde:build-mesh "snmesh" "-a" "n@node@_msh") 
+
+(sde:save-model "n@node@_geo") 
+
+  
+
+; ------------------------------------------ END --------------------------------------------; 
